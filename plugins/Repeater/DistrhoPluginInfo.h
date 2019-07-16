@@ -1,6 +1,6 @@
 /*
  * DISTRHO Plugin Framework (DPF)
- * Copyright (C) 2012-2015 Filipe Coelho <falktx@falktx.com>
+ * Copyright (C) 2012-2014 Filipe Coelho <falktx@falktx.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any purpose with
  * or without fee is hereby granted, provided that the above copyright notice and this
@@ -17,31 +17,17 @@
 #ifndef DISTRHO_PLUGIN_INFO_H_INCLUDED
 #define DISTRHO_PLUGIN_INFO_H_INCLUDED
 
-#define DISTRHO_PLUGIN_BRAND "DISTRHO"
-#define DISTRHO_PLUGIN_NAME  "Info"
-#define DISTRHO_PLUGIN_URI   "http://distrho.sf.net/examples/Info"
+#define DISTRHO_PLUGIN_BRAND "jalxes"
+#define DISTRHO_PLUGIN_NAME  "Repeater"
+#define DISTRHO_PLUGIN_URI   "http://jalxes.bin/clean/repeater"
 
-#define DISTRHO_PLUGIN_HAS_UI       1
-#define DISTRHO_PLUGIN_IS_RT_SAFE   1
-#define DISTRHO_PLUGIN_NUM_INPUTS   2
-#define DISTRHO_PLUGIN_NUM_OUTPUTS  2
-#define DISTRHO_PLUGIN_WANT_TIMEPOS 1
-#define DISTRHO_UI_USE_NANOVG       1
-
-enum Parameters {
-    kParameterBufferSize = 0,
-    kParameterTimePlaying,
-    kParameterTimeFrame,
-    kParameterTimeValidBBT,
-    kParameterTimeBar,
-    kParameterTimeBeat,
-    kParameterTimeTick,
-    kParameterTimeBarStartTick,
-    kParameterTimeBeatsPerBar,
-    kParameterTimeBeatType,
-    kParameterTimeTicksPerBeat,
-    kParameterTimeBeatsPerMinute,
-    kParameterCount
-};
+#define DISTRHO_PLUGIN_HAS_UI        1
+#define DISTRHO_PLUGIN_IS_RT_SAFE    1
+#define DISTRHO_PLUGIN_WANT_PROGRAMS 1
+#define DISTRHO_PLUGIN_WANT_STATE    1
+#define DISTRHO_PLUGIN_NUM_INPUTS    0
+#define DISTRHO_PLUGIN_NUM_OUTPUTS   0
+#define DISTRHO_PLUGIN_WANT_MIDI_INPUT  1
+#define DISTRHO_PLUGIN_WANT_MIDI_OUTPUT 1
 
 #endif // DISTRHO_PLUGIN_INFO_H_INCLUDED

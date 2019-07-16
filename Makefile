@@ -16,12 +16,7 @@ ifeq ($(HAVE_DGL),true)
 endif
 
 plugins: dgl
-	$(MAKE) all -C plugins/Info
-	$(MAKE) all -C plugins/Latency
-	$(MAKE) all -C plugins/Meters
-	$(MAKE) all -C plugins/MidiThrough
-	$(MAKE) all -C plugins/Parameters
-	$(MAKE) all -C plugins/States
+	$(MAKE) all -C plugins/Repeater
 
 ifneq ($(CROSS_COMPILING),true)
 gen: plugins dpf/utils/lv2_ttl_generator
@@ -41,12 +36,7 @@ endif
 clean:
 	$(MAKE) clean -C dpf/dgl
 	$(MAKE) clean -C dpf/utils/lv2-ttl-generator
-	$(MAKE) clean -C plugins/Info
-	$(MAKE) clean -C plugins/Latency
-	$(MAKE) clean -C plugins/Meters
-	$(MAKE) clean -C plugins/MidiThrough
-	$(MAKE) clean -C plugins/Parameters
-	$(MAKE) clean -C plugins/States
+	$(MAKE) clean -C plugins/Repeater
 	rm -rf bin build
 
 # --------------------------------------------------------------

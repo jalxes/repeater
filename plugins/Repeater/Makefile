@@ -7,16 +7,16 @@
 # --------------------------------------------------------------
 # Project name, used for binaries
 
-NAME = d_info
+NAME = d_repeater
 
 # --------------------------------------------------------------
 # Files to build
 
 FILES_DSP = \
-	InfoExamplePlugin.cpp
+	Repeater.cpp
 
 FILES_UI  = \
-	InfoExampleUI.cpp
+	RepeaterUI.cpp
 
 # --------------------------------------------------------------
 # Do some magic
@@ -32,13 +32,21 @@ TARGETS += jack
 endif
 endif
 
+ifeq ($(LINUX),true)
+ifeq ($(HAVE_DGL),true)
+ifeq ($(HAVE_LIBLO),true)
+# TARGETS += dssi
+endif
+endif
+endif
+
 ifeq ($(HAVE_DGL),true)
 TARGETS += lv2_sep
 else
 TARGETS += lv2_dsp
 endif
 
-TARGETS += vst
+# TARGETS += vst
 
 all: $(TARGETS)
 

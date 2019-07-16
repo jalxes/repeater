@@ -17,10 +17,11 @@
 #include "DistrhoUI.hpp"
 
 START_NAMESPACE_DISTRHO
+using DGL::Rectangle;
 
 // -----------------------------------------------------------------------------------------------------------
 
-class ExampleUIParameters : public UI
+class RepeaterUI : public UI
 {
 public:
     /**
@@ -38,26 +39,19 @@ public:
         {
         case 0: return "top-left";
         case 1: return "top-center";
-        case 2: return "top-right";
-        case 3: return "middle-left";
-        case 4: return "middle-center";
-        case 5: return "middle-right";
-        case 6: return "bottom-left";
-        case 7: return "bottom-center";
-        case 8: return "bottom-right";
         }
 
         return "unknown";
     }
 
     /* constructor */
-    ExampleUIParameters()
+    RepeaterUI()
         : UI()
     {
        /**
           Initialize the grid to all off per default.
         */
-        std::memset(fParamGrid, 0, sizeof(bool)*9);
+        std::memset(fParamGrid, 0, sizeof(bool)*3);
 
         setSize(kUIWidth, kUIHeight);
     }
@@ -69,7 +63,14 @@ protected:
    /**
       This plugin has no parameters, so we can safely ignore this.
     */
-    void parameterChanged(uint32_t, float) override {}
+    void parameterChanged(uint32_t index, float value) override
+    {
+        // update our grid state to match the plugin side
+        fParamGrid[index] = (value > 0.5f);
+
+        // trigger repaint
+        repaint();
+    }
 
    /**
       A program has been loaded on the plugin side.
@@ -85,23 +86,11 @@ protected:
             fParamGrid[0] = false;
             fParamGrid[1] = false;
             fParamGrid[2] = false;
-            fParamGrid[3] = false;
-            fParamGrid[4] = false;
-            fParamGrid[5] = false;
-            fParamGrid[6] = false;
-            fParamGrid[7] = false;
-            fParamGrid[8] = false;
             break;
         case 1:
             fParamGrid[0] = true;
             fParamGrid[1] = true;
             fParamGrid[2] = false;
-            fParamGrid[3] = false;
-            fParamGrid[4] = true;
-            fParamGrid[5] = true;
-            fParamGrid[6] = true;
-            fParamGrid[7] = false;
-            fParamGrid[8] = true;
             break;
         }
         repaint();
@@ -120,20 +109,6 @@ protected:
             fParamGrid[0] = valueOnOff;
         else if (std::strcmp(key, "top-center") == 0)
             fParamGrid[1] = valueOnOff;
-        else if (std::strcmp(key, "top-right") == 0)
-            fParamGrid[2] = valueOnOff;
-        else if (std::strcmp(key, "middle-left") == 0)
-            fParamGrid[3] = valueOnOff;
-        else if (std::strcmp(key, "middle-center") == 0)
-            fParamGrid[4] = valueOnOff;
-        else if (std::strcmp(key, "middle-right") == 0)
-            fParamGrid[5] = valueOnOff;
-        else if (std::strcmp(key, "bottom-left") == 0)
-            fParamGrid[6] = valueOnOff;
-        else if (std::strcmp(key, "bottom-center") == 0)
-            fParamGrid[7] = valueOnOff;
-        else if (std::strcmp(key, "bottom-right") == 0)
-            fParamGrid[8] = valueOnOff;
 
         // trigger repaint
         repaint();
@@ -171,9 +146,9 @@ protected:
             // middle
             r.setY(3 + kUIHeight/3);
 
-            if (fParamGrid[3+i])
-                glColor3f(0.8f, 0.5f, 0.3f);
-            else
+            // if (fParamGrid[3+i])
+            //     glColor3f(0.8f, 0.5f, 0.3f);
+            // else
                 glColor3f(0.3f, 0.5f, 0.8f);
 
             r.draw();
@@ -181,9 +156,9 @@ protected:
             // bottom
             r.setY(3 + kUIHeight*2/3);
 
-            if (fParamGrid[6+i])
-                glColor3f(0.8f, 0.5f, 0.3f);
-            else
+            // if (fParamGrid[6+i])
+            //     glColor3f(0.8f, 0.5f, 0.3f);
+            // else
                 glColor3f(0.3f, 0.5f, 0.8f);
 
             r.draw();
@@ -223,6 +198,8 @@ protected:
 
                 // report change to host (and thus plugin)
                 setState(getStateKeyFromIndex(index), fParamGrid[index] ? "true" : "false");
+                // report change to host (and thus plugin)
+                setParameterValue(index, fParamGrid[index] ? 1.0f : 0.0f);
 
                 // trigger repaint
                 repaint();
@@ -238,6 +215,7 @@ protected:
                 const uint32_t index = 3+i;
                 fParamGrid[index] = !fParamGrid[index];
                 setState(getStateKeyFromIndex(index), fParamGrid[index] ? "true" : "false");
+                setParameterValue(index, fParamGrid[index] ? 1.0f : 0.0f);
                 repaint();
                 break;
             }
@@ -251,6 +229,7 @@ protected:
                 const uint32_t index = 6+i;
                 fParamGrid[index] = !fParamGrid[index];
                 setState(getStateKeyFromIndex(index), fParamGrid[index] ? "true" : "false");
+                setParameterValue(index, fParamGrid[index] ? 1.0f : 0.0f);
                 repaint();
                 break;
             }
@@ -266,12 +245,12 @@ private:
       Our states used to display the grid.
       The host does not know about these.
     */
-    bool fParamGrid[9];
+    bool fParamGrid[3];
 
    /**
       Set our UI class as non-copyable and add a leak detector just in case.
     */
-    DISTRHO_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ExampleUIParameters)
+    DISTRHO_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(RepeaterUI)
 };
 
 /* ------------------------------------------------------------------------------------------------------------
@@ -279,7 +258,7 @@ private:
 
 UI* createUI()
 {
-    return new ExampleUIParameters();
+    return new RepeaterUI();
 }
 
 // -----------------------------------------------------------------------------------------------------------

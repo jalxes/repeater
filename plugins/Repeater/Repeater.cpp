@@ -24,17 +24,17 @@ START_NAMESPACE_DISTRHO
   Simple plugin to demonstrate state usage (including UI).
   The plugin will be treated as an effect, but it will not change the host audio.
  */
-class ExamplePluginStates : public Plugin
+class Repeater : public Plugin
 {
 public:
-    ExamplePluginStates()
-        : Plugin(0, 2, 9) // 0 parameters, 2 programs, 9 states
+    Repeater()
+        : Plugin(3, 2, 2) // 0 parameters, 2 programs, 9 states
     {
        /**
           Initialize all our parameters to their defaults.
           In this example all default values are false, so we can simply zero them.
         */
-        std::memset(fParamGrid, 0, sizeof(bool)*9);
+        std::memset(fParamGrid, 0, sizeof(bool)*2);
     }
 
 protected:
@@ -47,7 +47,7 @@ protected:
     */
     const char* getLabel() const override
     {
-        return "states";
+        return "Repeater";
     }
 
    /**
@@ -55,8 +55,7 @@ protected:
     */
     const char* getDescription() const override
     {
-        return "Simple plugin to demonstrate state usage (including UI).\n\
-The plugin will be treated as an effect, but it will not change the host audio.";
+        return "repeater man.";
     }
 
    /**
@@ -64,7 +63,7 @@ The plugin will be treated as an effect, but it will not change the host audio."
     */
     const char* getMaker() const override
     {
-        return "DISTRHO";
+        return "jalxes";
     }
 
    /**
@@ -72,7 +71,7 @@ The plugin will be treated as an effect, but it will not change the host audio."
     */
     const char* getHomePage() const override
     {
-        return "https://github.com/DISTRHO/plugin-examples";
+        return "https://github.com/jalxes/repeater";
     }
 
    /**
@@ -81,7 +80,7 @@ The plugin will be treated as an effect, but it will not change the host audio."
     */
     const char* getLicense() const override
     {
-        return "ISC";
+        return "APACHE";
     }
 
    /**
@@ -107,7 +106,49 @@ The plugin will be treated as an effect, but it will not change the host audio."
    /**
       This plugin has no parameters..
     */
-    void  initParameter(uint32_t, Parameter&) override {}
+    void initParameter(uint32_t index, Parameter& parameter) override{
+        /**
+          All parameters in this plugin are similar except for name.
+          As such, we initialize the common details first, then set the unique name later.
+        */
+
+       /**
+          Changing parameters does not cause any realtime-unsafe operations, so we can mark them as automable.
+          Also set as boolean because they work as on/off switches.
+        */
+        parameter.hints = kParameterIsAutomable|kParameterIsBoolean;
+
+       /**
+          Minimum 0 (off), maximum 1 (on).
+          Default is off.
+        */
+        parameter.ranges.min = 0.0f;
+        parameter.ranges.max = 1.0f;
+        parameter.ranges.def = 0.0f;
+
+       /**
+          Set the (unique) parameter name.
+          @see fParamGrid
+        */
+        switch (index)
+        {
+        case 0:
+            parameter.name = "top-left";
+            break;
+        case 1:
+            parameter.name = "top-center";
+            break;
+        case 2:
+            parameter.name = "top-right";
+            break;
+        }
+
+       /**
+          Our parameter names are valid symbols except for "-".
+        */
+        parameter.symbol = parameter.name;
+        parameter.symbol.replace('-', '_');
+    }
 
    /**
       Set the name of the program @a index.
@@ -140,27 +181,6 @@ The plugin will be treated as an effect, but it will not change the host audio."
         case 1:
             stateKey = "top-center";
             break;
-        case 2:
-            stateKey = "top-right";
-            break;
-        case 3:
-            stateKey = "middle-left";
-            break;
-        case 4:
-            stateKey = "middle-center";
-            break;
-        case 5:
-            stateKey = "middle-right";
-            break;
-        case 6:
-            stateKey = "bottom-left";
-            break;
-        case 7:
-            stateKey = "bottom-center";
-            break;
-        case 8:
-            stateKey = "bottom-right";
-            break;
         }
 
         defaultStateValue = "false";
@@ -172,8 +192,21 @@ The plugin will be treated as an effect, but it will not change the host audio."
    /**
       This plugin has no parameters..
     */
-    void  setParameterValue(uint32_t, float) override {}
-    float getParameterValue(uint32_t) const  override { return 0.0f; }
+    /**
+      Get the current value of a parameter.
+    */
+    float getParameterValue(uint32_t index) const override
+    {
+        return fParamGrid[index];
+    }
+
+   /**
+      Change a parameter value.
+    */
+    void setParameterValue(uint32_t index, float value) override
+    {
+        fParamGrid[index] = value;
+    }
 
    /**
       Load a program.
@@ -184,26 +217,16 @@ The plugin will be treated as an effect, but it will not change the host audio."
         switch (index)
         {
         case 0:
-            fParamGrid[0] = false;
-            fParamGrid[1] = false;
-            fParamGrid[2] = false;
-            fParamGrid[3] = false;
-            fParamGrid[4] = false;
-            fParamGrid[5] = false;
-            fParamGrid[6] = false;
-            fParamGrid[7] = false;
-            fParamGrid[8] = false;
+            fParamGrid[0] = 0.0f;
+            fParamGrid[1] = 0.0f;
+            fParamGrid[2] = 0.0f;
+            
             break;
         case 1:
-            fParamGrid[0] = true;
-            fParamGrid[1] = true;
-            fParamGrid[2] = false;
-            fParamGrid[3] = false;
-            fParamGrid[4] = true;
-            fParamGrid[5] = true;
-            fParamGrid[6] = true;
-            fParamGrid[7] = false;
-            fParamGrid[8] = true;
+            fParamGrid[0] = 0.0f;
+            fParamGrid[1] = 1.0f;
+            fParamGrid[2] = 1.0f;
+            
             break;
         }
     }
@@ -222,21 +245,7 @@ The plugin will be treated as an effect, but it will not change the host audio."
             return fParamGrid[0] ? sTrue : sFalse;
         else if (std::strcmp(key, "top-center") == 0)
             return fParamGrid[1] ? sTrue : sFalse;
-        else if (std::strcmp(key, "top-right") == 0)
-            return fParamGrid[2] ? sTrue : sFalse;
-        else if (std::strcmp(key, "middle-left") == 0)
-            return fParamGrid[3] ? sTrue : sFalse;
-        else if (std::strcmp(key, "middle-center") == 0)
-            return fParamGrid[4] ? sTrue : sFalse;
-        else if (std::strcmp(key, "middle-right") == 0)
-            return fParamGrid[5] ? sTrue : sFalse;
-        else if (std::strcmp(key, "bottom-left") == 0)
-            return fParamGrid[6] ? sTrue : sFalse;
-        else if (std::strcmp(key, "bottom-center") == 0)
-            return fParamGrid[7] ? sTrue : sFalse;
-        else if (std::strcmp(key, "bottom-right") == 0)
-            return fParamGrid[8] ? sTrue : sFalse;
-
+        
         return sFalse;
     }
 
@@ -252,40 +261,18 @@ The plugin will be treated as an effect, but it will not change the host audio."
             fParamGrid[0] = valueOnOff;
         else if (std::strcmp(key, "top-center") == 0)
             fParamGrid[1] = valueOnOff;
-        else if (std::strcmp(key, "top-right") == 0)
-            fParamGrid[2] = valueOnOff;
-        else if (std::strcmp(key, "middle-left") == 0)
-            fParamGrid[3] = valueOnOff;
-        else if (std::strcmp(key, "middle-center") == 0)
-            fParamGrid[4] = valueOnOff;
-        else if (std::strcmp(key, "middle-right") == 0)
-            fParamGrid[5] = valueOnOff;
-        else if (std::strcmp(key, "bottom-left") == 0)
-            fParamGrid[6] = valueOnOff;
-        else if (std::strcmp(key, "bottom-center") == 0)
-            fParamGrid[7] = valueOnOff;
-        else if (std::strcmp(key, "bottom-right") == 0)
-            fParamGrid[8] = valueOnOff;
+        
     }
 
    /* --------------------------------------------------------------------------------------------------------
     * Process */
 
-   /**
-      Run/process function for plugins without MIDI input.
-    */
-    void run(const float** inputs, float** outputs, uint32_t frames) override
-    {
-       /**
-          This plugin does nothing, it just demonstrates parameter usage.
-          So here we directly copy inputs over outputs, leaving the audio untouched.
-          We need to be careful in case the host re-uses the same buffer for both ins and outs.
-        */
-        if (outputs[0] != inputs[0])
-            std::memcpy(outputs[0], inputs[0], sizeof(float)*frames);
 
-        if (outputs[1] != inputs[1])
-            std::memcpy(outputs[1], inputs[1], sizeof(float)*frames);
+void run(const float**, float**, uint32_t,
+             const MidiEvent* midiEvents, uint32_t midiEventCount) override
+    {
+        for (uint32_t i=0; i<midiEventCount; ++i)
+            writeMidiEvent(midiEvents[i]);
     }
 
     // -------------------------------------------------------------------------------------------------------
@@ -294,13 +281,13 @@ private:
    /**
       Our parameters used to display the grid on/off states.
     */
-    bool fParamGrid[9];
+    bool fParamGrid[3];
 
 
    /**
       Set our plugin class as non-copyable and add a leak detector just in case.
     */
-    DISTRHO_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ExamplePluginStates)
+    DISTRHO_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Repeater)
 };
 
 /* ------------------------------------------------------------------------------------------------------------
@@ -308,7 +295,7 @@ private:
 
 Plugin* createPlugin()
 {
-    return new ExamplePluginStates();
+    return new Repeater();
 }
 
 // -----------------------------------------------------------------------------------------------------------
