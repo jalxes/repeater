@@ -28,14 +28,21 @@ class Repeater : public Plugin
 {
 public:
     Repeater()
-        : Plugin(3, 2, 2) // 0 parameters, 2 programs, 9 states
+        : Plugin(3, 2, 2) // 3 parameters, 2 programs, 2 states
     {
-       /**
-          Initialize all our parameters to their defaults.
-          In this example all default values are false, so we can simply zero them.
-        */
-        std::memset(fParamGrid, 0, sizeof(bool)*2);
+        fParams.numberLastEvents = 16.0f;
+        fParams.eventGroup = 0.0f;
+        fParams.repeat = false;
     }
+   
+    enum Parameters
+    {
+        paramNumberLastEvents,
+        paramEventGroup,
+        paramRepeat,
+    };
+
+
 
 protected:
    /* --------------------------------------------------------------------------------------------------------
@@ -107,47 +114,37 @@ protected:
       This plugin has no parameters..
     */
     void initParameter(uint32_t index, Parameter& parameter) override{
-        /**
-          All parameters in this plugin are similar except for name.
-          As such, we initialize the common details first, then set the unique name later.
-        */
-
-       /**
-          Changing parameters does not cause any realtime-unsafe operations, so we can mark them as automable.
-          Also set as boolean because they work as on/off switches.
-        */
-        parameter.hints = kParameterIsAutomable|kParameterIsBoolean;
-
-       /**
-          Minimum 0 (off), maximum 1 (on).
-          Default is off.
-        */
-        parameter.ranges.min = 0.0f;
-        parameter.ranges.max = 1.0f;
-        parameter.ranges.def = 0.0f;
-
        /**
           Set the (unique) parameter name.
-          @see fParamGrid
         */
         switch (index)
         {
-        case 0:
-            parameter.name = "top-left";
+        case paramNumberLastEvents:
+            parameter.name = "number last events";
+            parameter.symbol     = "numberLastEvents";
+            parameter.hints      = kParameterIsAutomable|kParameterIsInteger;
+            parameter.ranges.def = 0.0f;
+            parameter.ranges.min = 0.0f;
+            parameter.ranges.max = 64.0f;
             break;
-        case 1:
-            parameter.name = "top-center";
+        case paramEventGroup:
+            parameter.name = "event group";
+            parameter.symbol     = "eventGroup";
+            parameter.hints      = kParameterIsAutomable|kParameterIsInteger;
+            parameter.ranges.def = 0.0f;
+            parameter.ranges.min = 0.0f;
+            parameter.ranges.max = 16.0f;
             break;
-        case 2:
-            parameter.name = "top-right";
+        case paramRepeat:
+            parameter.name = "repeat";
+            parameter.symbol     = "repeat";
+            parameter.hints = kParameterIsAutomable|kParameterIsBoolean;
+            parameter.ranges.def = 0.0f;
+            parameter.ranges.min = 0.0f;
+            parameter.ranges.max = 1.0f;
             break;
         }
 
-       /**
-          Our parameter names are valid symbols except for "-".
-        */
-        parameter.symbol = parameter.name;
-        parameter.symbol.replace('-', '_');
     }
 
    /**
@@ -189,25 +186,39 @@ protected:
    /* --------------------------------------------------------------------------------------------------------
     * Internal data */
 
-   /**
-      This plugin has no parameters..
-    */
-    /**
-      Get the current value of a parameter.
-    */
-    float getParameterValue(uint32_t index) const override
+   float getParameterValue(uint32_t index) const override
     {
-        return fParamGrid[index];
+        switch (index)
+            {
+            case paramNumberLastEvents:
+                return fParams.numberLastEvents;
+            case paramEventGroup:
+                return fParams.eventGroup;
+            case paramRepeat:
+                return fParams.repeat ? 1.0f : 0.0f;
+            }
+        return 0.0f;
     }
 
-   /**
-      Change a parameter value.
-    */
     void setParameterValue(uint32_t index, float value) override
     {
-        fParamGrid[index] = value;
+        switch (index)
+            {
+            case paramNumberLastEvents:
+                fParams.numberLastEvents = value;
+                break;
+            case paramEventGroup:
+                fParams.eventGroup = value;
+                break;
+            case paramRepeat: {
+                const bool repeat = (value > 0.5f);
+                if (fParams.repeat != repeat)
+                {
+                    fParams.repeat = repeat;
+                }
+            }   break;
+        }
     }
-
    /**
       Load a program.
       The host may call this function from any context, including realtime processing.
@@ -217,15 +228,15 @@ protected:
         switch (index)
         {
         case 0:
-            fParamGrid[0] = 0.0f;
-            fParamGrid[1] = 0.0f;
-            fParamGrid[2] = 0.0f;
+            fParams.numberLastEvents = 16.0f;
+            fParams.eventGroup = 0.0f;
+            fParams.repeat = false;
             
             break;
         case 1:
-            fParamGrid[0] = 0.0f;
-            fParamGrid[1] = 1.0f;
-            fParamGrid[2] = 1.0f;
+            fParams.numberLastEvents = 16.0f;
+            fParams.eventGroup = 0.0f;
+            fParams.repeat = false;
             
             break;
         }
@@ -241,10 +252,10 @@ protected:
         static const String sFalse("false");
 
         // check which block changed
-        /**/ if (std::strcmp(key, "top-left") == 0)
-            return fParamGrid[0] ? sTrue : sFalse;
-        else if (std::strcmp(key, "top-center") == 0)
-            return fParamGrid[1] ? sTrue : sFalse;
+        // /**/ if (std::strcmp(key, "top-left") == 0)
+        //     return fParamGrid[0] ? sTrue : sFalse;
+        // else if (std::strcmp(key, "top-center") == 0)
+        //     return fParamGrid[1] ? sTrue : sFalse;
         
         return sFalse;
     }
@@ -256,11 +267,11 @@ protected:
     {
         const bool valueOnOff = (std::strcmp(value, "true") == 0);
 
-        // check which block changed
-        /**/ if (std::strcmp(key, "top-left") == 0)
-            fParamGrid[0] = valueOnOff;
-        else if (std::strcmp(key, "top-center") == 0)
-            fParamGrid[1] = valueOnOff;
+        // // check which block changed
+        // /**/ if (std::strcmp(key, "top-left") == 0)
+        //     fParamGrid[0] = valueOnOff;
+        // else if (std::strcmp(key, "top-center") == 0)
+        //     fParamGrid[1] = valueOnOff;
         
     }
 
@@ -281,7 +292,11 @@ private:
    /**
       Our parameters used to display the grid on/off states.
     */
-    bool fParamGrid[3];
+    struct ParamValues {
+        float numberLastEvents;
+        float eventGroup;
+        bool repeat;
+    } fParams;
 
 
    /**
