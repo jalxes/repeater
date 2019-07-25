@@ -282,8 +282,16 @@ protected:
 void run(const float**, float**, uint32_t,
              const MidiEvent* midiEvents, uint32_t midiEventCount) override
     {
-        for (uint32_t i=0; i<midiEventCount; ++i)
+        if (fParams.repeat)
+        {
+            for (uint32_t i=0; i<fParams.numberLastEvents; ++i)
+                writeMidiEvent(lastEvents[i]);
+            return;
+        }
+        for (uint32_t i=0; i<midiEventCount; ++i){
+            lastEvents[i] = midiEvents[i];
             writeMidiEvent(midiEvents[i]);
+        }
     }
 
     // -------------------------------------------------------------------------------------------------------
@@ -297,7 +305,7 @@ private:
         float eventGroup;
         bool repeat;
     } fParams;
-
+    MidiEvent lastEvents[64];
 
    /**
       Set our plugin class as non-copyable and add a leak detector just in case.
