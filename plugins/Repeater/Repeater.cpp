@@ -15,6 +15,7 @@
  */
 
 #include "DistrhoPlugin.hpp"
+#include <vector>
 
 START_NAMESPACE_DISTRHO
 
@@ -282,14 +283,15 @@ protected:
 void run(const float**, float**, uint32_t,
              const MidiEvent* midiEvents, uint32_t midiEventCount) override
     {
-        if (fParams.repeat)
+        if (fParams.repeat && !lastEvents.empty())
         {
-            for (uint32_t i=0; i<fParams.numberLastEvents; ++i)
-                writeMidiEvent(lastEvents[i]);
+             for (auto it = lastEvents.crbegin(); it != lastEvents.crend(); it++)
+                writeMidiEvent(**it);
+
             return;
         }
         for (uint32_t i=0; i<midiEventCount; ++i){
-            lastEvents[i] = midiEvents[i];
+            lastEvents.push_back(&midiEvents[i]);
             writeMidiEvent(midiEvents[i]);
         }
     }
@@ -305,7 +307,7 @@ private:
         float eventGroup;
         bool repeat;
     } fParams;
-    MidiEvent lastEvents[64];
+    std::vector<MidiEvent*> lastEvents;
 
    /**
       Set our plugin class as non-copyable and add a leak detector just in case.
