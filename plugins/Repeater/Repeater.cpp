@@ -283,15 +283,37 @@ protected:
 void run(const float**, float**, uint32_t,
              const MidiEvent* midiEvents, uint32_t midiEventCount) override
     {
+        const TimePosition& timePos(getTimePosition());
+
         if (fParams.repeat && !lastEvents.empty())
         {
-             for (auto it = lastEvents.crbegin(); it != lastEvents.crend(); it++)
-                writeMidiEvent(**it);
+            uint32_t index = 0;
+             for (auto it = lastEvents.crbegin(); it != lastEvents.crend(); it++){
+                index++;
+                if (index > fParams.numberLastEvents) break;
+                
+                EventWithTime event = *it;
+                if (timePos.bbt.valid &&
+                    event.time.bbt.beat == timePos.bbt.beat &&
+                    event.time.bbt.tick == timePos.bbt.tick 
+                )
+                {
+                    writeMidiEvent(event.event);
+                }
+                
+             }
+                
 
             return;
         }
+        
+        
         for (uint32_t i=0; i<midiEventCount; ++i){
-            lastEvents.push_back(&midiEvents[i]);
+            EventWithTime newEvent;
+            newEvent.time = timePos;
+            newEvent.event = midiEvents[i];
+            lastEvents.emplace_back(newEvent);
+            
             writeMidiEvent(midiEvents[i]);
         }
     }
@@ -307,7 +329,11 @@ private:
         float eventGroup;
         bool repeat;
     } fParams;
-    std::vector<MidiEvent*> lastEvents;
+    struct EventWithTime {
+        MidiEvent event;
+        TimePosition time;
+    } events;
+    std::vector<EventWithTime> lastEvents;
 
    /**
       Set our plugin class as non-copyable and add a leak detector just in case.
