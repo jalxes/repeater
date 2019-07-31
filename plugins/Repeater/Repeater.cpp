@@ -16,6 +16,7 @@
 
 #include "DistrhoPlugin.hpp"
 #include <vector>
+#include <iostream>
 
 START_NAMESPACE_DISTRHO
 
@@ -285,26 +286,30 @@ void run(const float**, float**, uint32_t,
     {
         const TimePosition& timePos(getTimePosition());
 
-        if (fParams.repeat && !lastEvents.empty())
+        if (fParams.repeat && !lastEvents.empty() && timePos.bbt.valid)
         {
-            uint32_t index = 0;
-             for (auto it = lastEvents.crbegin(); it != lastEvents.crend(); it++){
-                index++;
-                if (index > fParams.numberLastEvents) break;
+            std::vector<EventWithTime> thisEvents(
+                lastEvents.end() - fParams.numberLastEvents, 
+                lastEvents.end()
+            );
+            if(lastEvents.size() < fParams.numberLastEvents)
+                thisEvents = lastEvents;
+            
+            for (auto event : thisEvents)
+            {
+                if (event.time.bbt.beat != timePos.bbt.beat)
+                    continue;
+                int32_t divisor = (timePos.bbt.ticksPerBeat/10);
+                if ((event.time.bbt.tick / divisor) != (timePos.bbt.tick / divisor))
+                    continue;
                 
-                EventWithTime event = *it;
-                if (timePos.bbt.valid &&
-                    event.time.bbt.beat == timePos.bbt.beat &&
-                    event.time.bbt.tick == timePos.bbt.tick 
-                )
-                {
-                    writeMidiEvent(event.event);
-                }
+                std::cout << "SIZE; ";
+                std::cout << thisEvents.size();
+                std::cout << std::endl;
                 
+                MidiEvent midi = event.event;
+                writeMidiEvent(midi);
              }
-                
-
-            return;
         }
         
         
@@ -313,7 +318,6 @@ void run(const float**, float**, uint32_t,
             newEvent.time = timePos;
             newEvent.event = midiEvents[i];
             lastEvents.emplace_back(newEvent);
-            
             writeMidiEvent(midiEvents[i]);
         }
     }
