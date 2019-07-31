@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        ".php-cs": "php",
+        ".php_cs": "php",
+        "*.js": "javascriptreact",
+        "iostream": "cpp"
+    }
+}

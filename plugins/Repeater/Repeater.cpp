@@ -280,46 +280,64 @@ protected:
    /* --------------------------------------------------------------------------------------------------------
     * Process */
 
-
+void resetThisEvents(){
+    if(lastEvents.size() > fParams.numberLastEvents)
+        thisEvents = std::vector<EventWithTime>(
+            lastEvents.end() - fParams.numberLastEvents, 
+            lastEvents.end()
+        );
+    else
+        thisEvents = lastEvents;
+}
 void run(const float**, float**, uint32_t,
              const MidiEvent* midiEvents, uint32_t midiEventCount) override
     {
         const TimePosition& timePos(getTimePosition());
-
-        if (fParams.repeat && !lastEvents.empty() && timePos.bbt.valid)
-        {
-            std::vector<EventWithTime> thisEvents(
-                lastEvents.end() - fParams.numberLastEvents, 
-                lastEvents.end()
-            );
-            if(lastEvents.size() < fParams.numberLastEvents)
-                thisEvents = lastEvents;
-            
-            for (auto event : thisEvents)
-            {
-                if (event.time.bbt.beat != timePos.bbt.beat)
-                    continue;
-                int32_t divisor = (timePos.bbt.ticksPerBeat/10);
-                if ((event.time.bbt.tick / divisor) != (timePos.bbt.tick / divisor))
-                    continue;
-                
-                std::cout << "SIZE; ";
-                std::cout << thisEvents.size();
-                std::cout << std::endl;
-                
-                MidiEvent midi = event.event;
-                writeMidiEvent(midi);
-             }
-        }
-        
         
         for (uint32_t i=0; i<midiEventCount; ++i){
+            std::cout << "whaaat: \n";            
+            
             EventWithTime newEvent;
+            newEvent.played = false;
             newEvent.time = timePos;
             newEvent.event = midiEvents[i];
             lastEvents.emplace_back(newEvent);
+            
             writeMidiEvent(midiEvents[i]);
+            
+            resetThisEvents();
         }
+        if (midiEventCount > 0) 
+            return;
+        
+        if (!fParams.repeat || thisEvents.empty() || !timePos.bbt.valid)
+            return;
+        
+        bool reset = true;
+        for (auto &event : thisEvents)
+        {
+            if(!event.played){
+                reset = false;
+            }
+
+            if (event.time.bbt.beat != timePos.bbt.beat)
+                continue;
+
+            int32_t divisor = (timePos.bbt.ticksPerBeat/10);
+            if ((event.time.bbt.tick / divisor) != (timePos.bbt.tick / divisor))
+                continue;
+            if(event.played)
+                continue;
+            
+            if(!reset){
+                reset = true;
+            }
+            event.played = true;
+            writeMidiEvent(event.event);
+        }
+        if (reset)
+            resetThisEvents();
+        
     }
 
     // -------------------------------------------------------------------------------------------------------
@@ -334,10 +352,13 @@ private:
         bool repeat;
     } fParams;
     struct EventWithTime {
+        bool played;
         MidiEvent event;
         TimePosition time;
     } events;
     std::vector<EventWithTime> lastEvents;
+    std::vector<EventWithTime> thisEvents;
+
 
    /**
       Set our plugin class as non-copyable and add a leak detector just in case.
