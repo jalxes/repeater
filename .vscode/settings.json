@@ -3,6 +3,16 @@
         ".php-cs": "php",
         ".php_cs": "php",
         "*.js": "javascriptreact",
-        "iostream": "cpp"
-    }
+        "iostream": "cpp",
+        "array": "cpp",
+        "deque": "cpp",
+        "unordered_map": "cpp",
+        "vector": "cpp",
+        "initializer_list": "cpp",
+        "string_view": "cpp",
+        "*.tcc": "cpp"
+    },
+    "C_Cpp.clang_format_fallbackStyle": "Mozilla",
+    "C_Cpp.clang_format_style": " Mozilla",
+    "C_Cpp.default.intelliSenseMode": "gcc-x64"
 }

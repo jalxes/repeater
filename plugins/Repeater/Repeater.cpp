@@ -34,14 +34,14 @@ public:
   Repeater()
     : Plugin(3, 2, 2) // 3 parameters, 2 programs, 2 states
   {
-    fParams.numberLastEvents = 16.0f;
+    fParams.numberLastBars = 4.0f;
     fParams.eventGroup = 0.0f;
     fParams.repeat = false;
   }
 
   enum Parameters
   {
-    paramNumberLastEvents,
+    paramNumberLastBars,
     paramEventGroup,
     paramRepeat,
   };
@@ -104,9 +104,9 @@ protected:
        Set the (unique) parameter name.
      */
     switch (index) {
-      case paramNumberLastEvents:
-        parameter.name = "number last events";
-        parameter.symbol = "numberLastEvents";
+      case paramNumberLastBars:
+        parameter.name = "number last bars";
+        parameter.symbol = "numberLastBars";
         parameter.hints = kParameterIsAutomable | kParameterIsInteger;
         parameter.ranges.def = 0.0f;
         parameter.ranges.min = 0.0f;
@@ -173,8 +173,8 @@ protected:
   float getParameterValue(uint32_t index) const override
   {
     switch (index) {
-      case paramNumberLastEvents:
-        return fParams.numberLastEvents;
+      case paramNumberLastBars:
+        return fParams.numberLastBars;
       case paramEventGroup:
         return fParams.eventGroup;
       case paramRepeat:
@@ -186,8 +186,8 @@ protected:
   void setParameterValue(uint32_t index, float value) override
   {
     switch (index) {
-      case paramNumberLastEvents:
-        fParams.numberLastEvents = value;
+      case paramNumberLastBars:
+        fParams.numberLastBars = value;
         break;
       case paramEventGroup:
         fParams.eventGroup = value;
@@ -209,13 +209,13 @@ protected:
   {
     switch (index) {
       case 0:
-        fParams.numberLastEvents = 16.0f;
+        fParams.numberLastBars = 4.0f;
         fParams.eventGroup = 0.0f;
         fParams.repeat = false;
 
         break;
       case 1:
-        fParams.numberLastEvents = 16.0f;
+        fParams.numberLastBars = 2.0f;
         fParams.eventGroup = 0.0f;
         fParams.repeat = false;
 
@@ -258,14 +258,16 @@ protected:
   /* --------------------------------------------------------------------------------------------------------
    * Process */
 
-  void resetThisEvents()
+  void resetEvents()
   {
-    if (lastEvents.size() > fParams.numberLastEvents)
-      thisEvents = std::vector<EventWithTime>(
-        lastEvents.end() - fParams.numberLastEvents, lastEvents.end());
+    if (allEventsByBar.size() > fParams.numberLastBars)
+      lastEvents = std::vector<EventByBar>(
+        allEventsByBar.end() - fParams.numberLastBars, allEventsByBar.end());
     else
-      thisEvents = lastEvents;
+      lastEvents = allEventsByBar;
+    curEventIndex = 0;
   }
+
   void run(const float**,
            float**,
            uint32_t,
@@ -273,32 +275,40 @@ protected:
            uint32_t midiEventCount) override
   {
     const TimePosition& timePos(getTimePosition());
+    if (timePosBar != timePos.bbt.bar) {
+      if (!eventByBar.events.empty()) {
+        allEventsByBar.emplace_back(eventByBar);
+        resetEvents();
+      }
+
+      std::vector<EventWithTime> events;
+      eventByBar = EventByBar{ events, timePos.bbt.bar };
+    }
 
     for (uint32_t i = 0; i < midiEventCount; ++i) {
-      std::cout << "whaaat: \n";
-
-      EventWithTime newEvent;
-      newEvent.played = false;
-      newEvent.time = timePos;
-      newEvent.event = midiEvents[i];
-      lastEvents.emplace_back(newEvent);
+      eventByBar.events.emplace_back(
+        EventWithTime{ false, midiEvents[i], timePos });
 
       writeMidiEvent(midiEvents[i]);
-
-      resetThisEvents();
     }
     if (midiEventCount > 0)
       return;
 
-    if (!fParams.repeat || thisEvents.empty() || !timePos.bbt.valid)
+    if (!fParams.repeat || lastEvents.empty() || !timePos.bbt.valid ||
+        !timePos.playing)
       return;
 
-    bool reset = true;
-    for (auto& event : thisEvents) {
-      if (!event.played) {
-        reset = false;
+    if (timePosBar != timePos.bbt.bar) {
+      curEventIndex++;
+      std::cout << curEventIndex << ">=" << lastEvents.size() << "\n";
+      if (curEventIndex > (lastEvents.size() - 1)) {
+        curEventIndex = 0;
+        for (auto& event : lastEvents.at(curEventIndex).events)
+          event.played = false;
       }
+    }
 
+    for (auto& event : lastEvents.at(curEventIndex).events) {
       if (event.time.bbt.beat != timePos.bbt.beat)
         continue;
 
@@ -308,14 +318,12 @@ protected:
       if (event.played)
         continue;
 
-      if (!reset) {
-        reset = true;
-      }
       event.played = true;
       writeMidiEvent(event.event);
     }
-    if (reset)
-      resetThisEvents();
+
+    if (timePosBar != timePos.bbt.bar)
+      timePosBar = timePos.bbt.bar;
   }
 
   // -------------------------------------------------------------------------------------------------------
@@ -326,7 +334,7 @@ private:
    */
   struct ParamValues
   {
-    float numberLastEvents;
+    float numberLastBars;
     float eventGroup;
     bool repeat;
   } fParams;
@@ -335,12 +343,21 @@ private:
     bool played;
     MidiEvent event;
     TimePosition time;
-  } events;
-  std::vector<EventWithTime> lastEvents;
-  std::vector<EventWithTime> thisEvents;
+  };
+  struct EventByBar
+  {
+    std::vector<EventWithTime> events;
+    int32_t bar;
+  } eventByBar;
+
+  int32_t timePosBar;
+  std::vector<EventByBar> lastEvents;
+  u_long curEventIndex = 0;
+  std::vector<EventByBar> allEventsByBar;
 
   /**
-     Set our plugin class as non-copyable and add a leak detector just in case.
+     Set our plugin class as non-copyable and add a leak detector just in
+     case.
    */
   DISTRHO_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Repeater)
 };
