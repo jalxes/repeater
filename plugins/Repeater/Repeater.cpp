@@ -32,11 +32,15 @@ class Repeater : public Plugin
 {
 public:
   Repeater()
-    : Plugin(3, 2, 2) // 3 parameters, 2 programs, 2 states
+    : Plugin(7, 0, 0) // parameters, programs, states
   {
     fParams.numberLastBars = 4.0f;
     fParams.eventGroup = 0.0f;
     fParams.repeat = false;
+    fParams.clearAll = false;
+    fParams.clearLast = false;
+    fParams.seila = false;
+    fParams.curEventIndex = 0.0f;
   }
 
   enum Parameters
@@ -44,6 +48,10 @@ public:
     paramNumberLastBars,
     paramEventGroup,
     paramRepeat,
+    paramClearAll,
+    paramClearLast,
+    paramSeila,
+    paramCurEventIndex,
   };
 
 protected:
@@ -128,43 +136,39 @@ protected:
         parameter.ranges.min = 0.0f;
         parameter.ranges.max = 1.0f;
         break;
-    }
-  }
-
-  /**
-     Set the name of the program @a index.
-     This function will be called once, shortly after the plugin is created.
-   */
-  void initProgramName(uint32_t index, String& programName) override
-  {
-    switch (index) {
-      case 0:
-        programName = "Default";
+      case paramClearAll:
+        parameter.name = "clearAll";
+        parameter.symbol = "clearAll";
+        parameter.hints = kParameterIsAutomable | kParameterIsBoolean;
+        parameter.ranges.def = 0.0f;
+        parameter.ranges.min = 0.0f;
+        parameter.ranges.max = 1.0f;
         break;
-      case 1:
-        programName = "Custom";
+      case paramClearLast:
+        parameter.name = "clearLast";
+        parameter.symbol = "clearLast";
+        parameter.hints = kParameterIsAutomable | kParameterIsBoolean;
+        parameter.ranges.def = 0.0f;
+        parameter.ranges.min = 0.0f;
+        parameter.ranges.max = 1.0f;
         break;
-    }
-  }
-
-  /**
-     Set the state key and default value of @a index.
-     This function will be called once, shortly after the plugin is created.
-   */
-  void initState(uint32_t index,
-                 String& stateKey,
-                 String& defaultStateValue) override
-  {
-    switch (index) {
-      case 0:
-        stateKey = "top-left";
+      case paramSeila:
+        parameter.name = "seila";
+        parameter.symbol = "seila";
+        parameter.hints = kParameterIsAutomable | kParameterIsBoolean;
+        parameter.ranges.def = 0.0f;
+        parameter.ranges.min = 0.0f;
+        parameter.ranges.max = 1.0f;
         break;
-      case 1:
-        stateKey = "top-center";
+      case paramCurEventIndex:
+        parameter.name = "curEventIndex";
+        parameter.symbol = "curEventIndex";
+        parameter.hints = kParameterIsInteger;
+        parameter.ranges.def = 0.0f;
+        parameter.ranges.min = 0.0f;
+        parameter.ranges.max = 64.0f;
         break;
     }
-
-    defaultStateValue = "false";
   }
 
   /* --------------------------------------------------------------------------------------------------------
@@ -177,8 +181,16 @@ protected:
         return fParams.numberLastBars;
       case paramEventGroup:
         return fParams.eventGroup;
+      case paramCurEventIndex:
+        return fParams.curEventIndex;
       case paramRepeat:
         return fParams.repeat ? 1.0f : 0.0f;
+      case paramClearAll:
+        return fParams.clearAll ? 1.0f : 0.0f;
+      case paramClearLast:
+        return fParams.clearLast ? 1.0f : 0.0f;
+      case paramSeila:
+        return fParams.seila ? 1.0f : 0.0f;
     }
     return 0.0f;
   }
@@ -198,61 +210,36 @@ protected:
           fParams.repeat = repeat;
         }
       } break;
-    }
-  }
-  /**
-     Load a program.
-     The host may call this function from any context, including realtime
-     processing.
-   */
-  void loadProgram(uint32_t index) override
-  {
-    switch (index) {
-      case 0:
-        fParams.numberLastBars = 4.0f;
-        fParams.eventGroup = 0.0f;
-        fParams.repeat = false;
-
+      case paramClearAll: {
+        const bool clearAll = (value > 0.5f);
+        if (fParams.clearAll != clearAll) {
+          if (clearAll)
+            allEventsByBar.clear();
+          fParams.clearAll = clearAll;
+        }
+      } break;
+      case paramClearLast: {
+        const bool clearLast = (value > 0.5f);
+        if (fParams.clearLast != clearLast) {
+          if (clearLast)
+            lastEvents.clear();
+          fParams.clearLast = clearLast;
+        }
+      } break;
+      case paramSeila: {
+        const bool seila = (value > 0.5f);
+        if (fParams.seila != seila) {
+          fParams.seila = seila;
+        }
+      } break;
+      case paramCurEventIndex: {
+        if (value > fParams.numberLastBars)
+          value = fParams.numberLastBars - 1;
+        fParams.curEventIndex = value;
+        curEventIndex = value;
         break;
-      case 1:
-        fParams.numberLastBars = 2.0f;
-        fParams.eventGroup = 0.0f;
-        fParams.repeat = false;
-
-        break;
+      }
     }
-  }
-
-  /**
-     Get the value of an internal state.
-     The host may call this function from any non-realtime context.
-   */
-  String getState(const char* key) const override
-  {
-    static const String sTrue("true");
-    static const String sFalse("false");
-
-    // check which block changed
-    // /**/ if (std::strcmp(key, "top-left") == 0)
-    //     return fParamGrid[0] ? sTrue : sFalse;
-    // else if (std::strcmp(key, "top-center") == 0)
-    //     return fParamGrid[1] ? sTrue : sFalse;
-
-    return sFalse;
-  }
-
-  /**
-     Change an internal state.
-   */
-  void setState(const char* key, const char* value) override
-  {
-    const bool valueOnOff = (std::strcmp(value, "true") == 0);
-
-    // // check which block changed
-    // /**/ if (std::strcmp(key, "top-left") == 0)
-    //     fParamGrid[0] = valueOnOff;
-    // else if (std::strcmp(key, "top-center") == 0)
-    //     fParamGrid[1] = valueOnOff;
   }
 
   /* --------------------------------------------------------------------------------------------------------
@@ -265,7 +252,6 @@ protected:
         allEventsByBar.end() - fParams.numberLastBars, allEventsByBar.end());
     else
       lastEvents = allEventsByBar;
-    curEventIndex = 0;
   }
 
   void run(const float**,
@@ -275,7 +261,13 @@ protected:
            uint32_t midiEventCount) override
   {
     const TimePosition& timePos(getTimePosition());
-    if (timePosBar != timePos.bbt.bar) {
+    bool newBar = timePosBar != timePos.bbt.bar;
+
+    if (newBar) {
+      timePosBar = timePos.bbt.bar;
+      std::cout << std::endl;
+      std::cout << "timePosBar " << timePosBar;
+
       if (!eventByBar.events.empty()) {
         allEventsByBar.emplace_back(eventByBar);
         resetEvents();
@@ -294,25 +286,32 @@ protected:
     if (midiEventCount > 0)
       return;
 
-    if (!fParams.repeat || lastEvents.empty() || !timePos.bbt.valid ||
-        !timePos.playing)
+    if (!timePos.bbt.valid || !timePos.playing)
       return;
 
-    if (timePosBar != timePos.bbt.bar) {
+    if (newBar) {
       curEventIndex++;
-      std::cout << curEventIndex << ">=" << lastEvents.size() << "\n";
-      if (curEventIndex > (lastEvents.size() - 1)) {
+      if (curEventIndex >= (lastEvents.size() - 1)) {
+        std::cout << std::endl;
+        std::cout << "OI"
+                  << "\n";
         curEventIndex = 0;
-        for (auto& event : lastEvents.at(curEventIndex).events)
-          event.played = false;
       }
+      std::cout << std::endl;
+      fParams.curEventIndex = curEventIndex;
+      std::cout << "curEventIndex " << curEventIndex;
+      std::cout << std::endl;
     }
+
+    if (!fParams.repeat || lastEvents.empty())
+      return;
 
     for (auto& event : lastEvents.at(curEventIndex).events) {
       if (event.time.bbt.beat != timePos.bbt.beat)
         continue;
 
-      int32_t divisor = (timePos.bbt.ticksPerBeat / 10);
+      int32_t divisor =
+        (timePos.bbt.ticksPerBeat / (5 * timePos.bbt.beatsPerBar));
       if ((event.time.bbt.tick / divisor) != (timePos.bbt.tick / divisor))
         continue;
       if (event.played)
@@ -322,8 +321,10 @@ protected:
       writeMidiEvent(event.event);
     }
 
-    if (timePosBar != timePos.bbt.bar)
-      timePosBar = timePos.bbt.bar;
+    if (newBar) {
+      for (auto& event : lastEvents.at(curEventIndex).events)
+        event.played = false;
+    }
   }
 
   // -------------------------------------------------------------------------------------------------------
@@ -337,6 +338,10 @@ private:
     float numberLastBars;
     float eventGroup;
     bool repeat;
+    bool clearAll;
+    bool clearLast;
+    bool seila;
+    float curEventIndex;
   } fParams;
   struct EventWithTime
   {

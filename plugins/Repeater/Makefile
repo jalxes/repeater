@@ -15,8 +15,6 @@ NAME = d_repeater
 FILES_DSP = \
 	Repeater.cpp
 
-FILES_UI  = \
-	RepeaterUI.cpp
 
 # --------------------------------------------------------------
 # Do some magic

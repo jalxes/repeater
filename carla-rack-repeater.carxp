@@ -29,7 +29,7 @@
 
    <Parameter>
     <Index>0</Index>
-    <Name>number last events</Name>
+    <Name>number last bars</Name>
     <Symbol>numberLastBars</Symbol>
     <Value>4</Value>
    </Parameter>
@@ -47,6 +47,31 @@
     <Symbol>repeat</Symbol>
     <MidiCC>22</MidiCC>
     <MidiChannel>1</MidiChannel>
+    <Value>0</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>3</Index>
+    <Name>clearAll</Name>
+    <Symbol>clearAll</Symbol>
+    <MidiCC>26</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>0</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>4</Index>
+    <Name>clearLast</Name>
+    <Symbol>clearLast</Symbol>
+    <MidiCC>27</MidiCC>
+    <MidiChannel>1</MidiChannel>
+    <Value>0</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>5</Index>
+    <Name>seila</Name>
+    <Symbol>seila</Symbol>
     <Value>0</Value>
    </Parameter>
 
@@ -230,7 +255,7 @@
    <Target>PulseAudio JACK Source:front-right</Target>
   </Connection>
   <Connection>
-   <Source>system:midi_capture_2</Source>
+   <Source>system:midi_capture_1</Source>
    <Target>Carla:events-in</Target>
   </Connection>
   <Connection>
@@ -247,6 +272,14 @@
   </Connection>
   <Connection>
    <Source>Carla:audio-out2</Source>
+   <Target>system:playback_2</Target>
+  </Connection>
+  <Connection>
+   <Source>Hydrogen:out_L</Source>
+   <Target>system:playback_1</Target>
+  </Connection>
+  <Connection>
+   <Source>Hydrogen:out_R</Source>
    <Target>system:playback_2</Target>
   </Connection>
  </ExternalPatchbay>
