@@ -32,27 +32,12 @@ class Repeater : public Plugin
 {
 public:
   Repeater()
-    : Plugin(7, 0, 0) // parameters, programs, states
+    : Plugin(kParamsCount, 0, 0) // parameters, programs, states
   {
-    fParams.numberLastBars = 4.0f;
-    fParams.eventGroup = 0.0f;
-    fParams.repeat = false;
-    fParams.clearAll = false;
-    fParams.clearLast = false;
-    fParams.seila = false;
-    fParams.curEventIndex = 0.0f;
-  }
+    std::memset(fParams, 0, sizeof(float) * kParamsCount);
 
-  enum Parameters
-  {
-    paramNumberLastBars,
-    paramEventGroup,
-    paramRepeat,
-    paramClearAll,
-    paramClearLast,
-    paramSeila,
-    paramCurEventIndex,
-  };
+    fParams[kNumberLastBars] = 4.0f;
+  }
 
 protected:
   /* --------------------------------------------------------------------------------------------------------
@@ -108,64 +93,50 @@ protected:
    */
   void initParameter(uint32_t index, Parameter& parameter) override
   {
+    parameter.hints = kParameterIsAutomable;
+    parameter.ranges.def = 0.0f;
+    parameter.ranges.min = 0.0f;
+    parameter.ranges.max = 1.0f;
     /**
        Set the (unique) parameter name.
      */
     switch (index) {
-      case paramNumberLastBars:
-        parameter.name = "number last bars";
+      case kNumberLastBars:
+        parameter.name = "numberLastBars";
         parameter.symbol = "numberLastBars";
-        parameter.hints = kParameterIsAutomable | kParameterIsInteger;
-        parameter.ranges.def = 0.0f;
-        parameter.ranges.min = 0.0f;
+        parameter.hints |= kParameterIsInteger;
         parameter.ranges.max = 64.0f;
         break;
-      case paramEventGroup:
-        parameter.name = "event group";
+      case kEventGroup:
+        parameter.name = "eventGroup";
         parameter.symbol = "eventGroup";
-        parameter.hints = kParameterIsAutomable | kParameterIsInteger;
-        parameter.ranges.def = 0.0f;
-        parameter.ranges.min = 0.0f;
+        parameter.hints |= kParameterIsInteger;
         parameter.ranges.max = 16.0f;
         break;
-      case paramRepeat:
+      case kRepeat:
         parameter.name = "repeat";
         parameter.symbol = "repeat";
-        parameter.hints = kParameterIsAutomable | kParameterIsBoolean;
-        parameter.ranges.def = 0.0f;
-        parameter.ranges.min = 0.0f;
-        parameter.ranges.max = 1.0f;
+        parameter.hints |= kParameterIsBoolean;
         break;
-      case paramClearAll:
+      case kClearAll:
         parameter.name = "clearAll";
         parameter.symbol = "clearAll";
-        parameter.hints = kParameterIsAutomable | kParameterIsBoolean;
-        parameter.ranges.def = 0.0f;
-        parameter.ranges.min = 0.0f;
-        parameter.ranges.max = 1.0f;
+        parameter.hints |= kParameterIsBoolean;
         break;
-      case paramClearLast:
+      case kClearLast:
         parameter.name = "clearLast";
         parameter.symbol = "clearLast";
-        parameter.hints = kParameterIsAutomable | kParameterIsBoolean;
-        parameter.ranges.def = 0.0f;
-        parameter.ranges.min = 0.0f;
-        parameter.ranges.max = 1.0f;
+        parameter.hints |= kParameterIsBoolean;
         break;
-      case paramSeila:
+      case kSeila:
         parameter.name = "seila";
         parameter.symbol = "seila";
-        parameter.hints = kParameterIsAutomable | kParameterIsBoolean;
-        parameter.ranges.def = 0.0f;
-        parameter.ranges.min = 0.0f;
-        parameter.ranges.max = 1.0f;
+        parameter.hints |= kParameterIsBoolean;
         break;
-      case paramCurEventIndex:
+      case kCurEventIndex:
         parameter.name = "curEventIndex";
         parameter.symbol = "curEventIndex";
-        parameter.hints = kParameterIsInteger;
-        parameter.ranges.def = 0.0f;
-        parameter.ranges.min = 0.0f;
+        parameter.hints |= kParameterIsInteger | kParameterIsOutput;
         parameter.ranges.max = 64.0f;
         break;
     }
@@ -176,70 +147,44 @@ protected:
 
   float getParameterValue(uint32_t index) const override
   {
-    switch (index) {
-      case paramNumberLastBars:
-        return fParams.numberLastBars;
-      case paramEventGroup:
-        return fParams.eventGroup;
-      case paramCurEventIndex:
-        return fParams.curEventIndex;
-      case paramRepeat:
-        return fParams.repeat ? 1.0f : 0.0f;
-      case paramClearAll:
-        return fParams.clearAll ? 1.0f : 0.0f;
-      case paramClearLast:
-        return fParams.clearLast ? 1.0f : 0.0f;
-      case paramSeila:
-        return fParams.seila ? 1.0f : 0.0f;
-    }
-    return 0.0f;
+    if (index > kParamsCount)
+      return 0.0f;
+
+    return fParams[index];
   }
 
   void setParameterValue(uint32_t index, float value) override
   {
+    if (index > kParamsCount)
+      return;
+
     switch (index) {
-      case paramNumberLastBars:
-        fParams.numberLastBars = value;
-        break;
-      case paramEventGroup:
-        fParams.eventGroup = value;
-        break;
-      case paramRepeat: {
-        const bool repeat = (value > 0.5f);
-        if (fParams.repeat != repeat) {
-          fParams.repeat = repeat;
+      case kRepeat: {
+        fParams[index] = 0.0f;
+        if (value > 0.5f)
+          value = 1.0f;
+      } break;
+      case kClearAll: {
+        fParams[index] = 0.0f;
+        if (value > 0.5f) {
+          allEventsByBar.clear();
+          value = 1.0f;
         }
       } break;
-      case paramClearAll: {
-        const bool clearAll = (value > 0.5f);
-        if (fParams.clearAll != clearAll) {
-          if (clearAll)
-            allEventsByBar.clear();
-          fParams.clearAll = clearAll;
+      case kClearLast: {
+        fParams[index] = 0.0f;
+        if (value > 0.5f) {
+          lastEvents.clear();
+          value = 1.0f;
         }
       } break;
-      case paramClearLast: {
-        const bool clearLast = (value > 0.5f);
-        if (fParams.clearLast != clearLast) {
-          if (clearLast)
-            lastEvents.clear();
-          fParams.clearLast = clearLast;
-        }
+      case kCurEventIndex: {
+        if (value > fParams[kNumberLastBars])
+          value = fParams[kNumberLastBars] - 1;
       } break;
-      case paramSeila: {
-        const bool seila = (value > 0.5f);
-        if (fParams.seila != seila) {
-          fParams.seila = seila;
-        }
-      } break;
-      case paramCurEventIndex: {
-        if (value > fParams.numberLastBars)
-          value = fParams.numberLastBars - 1;
-        fParams.curEventIndex = value;
-        curEventIndex = value;
-        break;
-      }
     }
+
+    fParams[index] = value;
   }
 
   /* --------------------------------------------------------------------------------------------------------
@@ -247,9 +192,10 @@ protected:
 
   void resetEvents()
   {
-    if (allEventsByBar.size() > fParams.numberLastBars)
-      lastEvents = std::vector<EventByBar>(
-        allEventsByBar.end() - fParams.numberLastBars, allEventsByBar.end());
+    auto init = allEventsByBar.end() - fParams[kNumberLastBars];
+    auto end = init + fParams[kNumberLastBars];
+    if (allEventsByBar.size() > fParams[kNumberLastBars])
+      lastEvents = std::vector<EventByBar>(init, end);
     else
       lastEvents = allEventsByBar;
   }
@@ -268,10 +214,7 @@ protected:
       std::cout << std::endl;
       std::cout << "timePosBar " << timePosBar;
 
-      if (!eventByBar.events.empty()) {
-        allEventsByBar.emplace_back(eventByBar);
-        resetEvents();
-      }
+      allEventsByBar.emplace_back(eventByBar);
 
       std::vector<EventWithTime> events;
       eventByBar = EventByBar{ events, timePos.bbt.bar };
@@ -283,30 +226,28 @@ protected:
 
       writeMidiEvent(midiEvents[i]);
     }
-    if (midiEventCount > 0)
+    if (midiEventCount > 0) {
+      resetEvents();
       return;
+    }
 
     if (!timePos.bbt.valid || !timePos.playing)
       return;
 
     if (newBar) {
-      curEventIndex++;
-      if (curEventIndex >= (lastEvents.size() - 1)) {
+      fParams[kCurEventIndex]++;
+      if (fParams[kCurEventIndex] >= (lastEvents.size())) {
         std::cout << std::endl;
         std::cout << "OI"
                   << "\n";
-        curEventIndex = 0;
+        fParams[kCurEventIndex] = 0;
       }
-      std::cout << std::endl;
-      fParams.curEventIndex = curEventIndex;
-      std::cout << "curEventIndex " << curEventIndex;
-      std::cout << std::endl;
     }
 
-    if (!fParams.repeat || lastEvents.empty())
+    if (!fParams[kRepeat] || lastEvents.empty())
       return;
 
-    for (auto& event : lastEvents.at(curEventIndex).events) {
+    for (auto& event : lastEvents.at(fParams[kCurEventIndex]).events) {
       if (event.time.bbt.beat != timePos.bbt.beat)
         continue;
 
@@ -322,7 +263,7 @@ protected:
     }
 
     if (newBar) {
-      for (auto& event : lastEvents.at(curEventIndex).events)
+      for (auto& event : lastEvents.at(fParams[kCurEventIndex]).events)
         event.played = false;
     }
   }
@@ -333,16 +274,8 @@ private:
   /**
      Our parameters used to display the grid on/off states.
    */
-  struct ParamValues
-  {
-    float numberLastBars;
-    float eventGroup;
-    bool repeat;
-    bool clearAll;
-    bool clearLast;
-    bool seila;
-    float curEventIndex;
-  } fParams;
+  float fParams[kParamsCount];
+
   struct EventWithTime
   {
     bool played;
@@ -357,7 +290,6 @@ private:
 
   int32_t timePosBar;
   std::vector<EventByBar> lastEvents;
-  u_long curEventIndex = 0;
   std::vector<EventByBar> allEventsByBar;
 
   /**

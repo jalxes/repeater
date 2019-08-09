@@ -32,4 +32,16 @@
 #define DISTRHO_PLUGIN_WANT_MIDI_OUTPUT 1
 #define DISTRHO_PLUGIN_WANT_TIMEPOS 1
 
+enum Parameters
+{
+  kNumberLastBars,
+  kEventGroup,
+  kRepeat,
+  kClearAll,
+  kClearLast,
+  kSeila,
+  kCurEventIndex,
+  kParamsCount,
+};
+
 #endif // DISTRHO_PLUGIN_INFO_H_INCLUDED
