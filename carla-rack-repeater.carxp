@@ -11,7 +11,7 @@
  </EngineSettings>
 
  <Transport>
-  <BeatsPerMinute>120</BeatsPerMinute>
+  <BeatsPerMinute>96</BeatsPerMinute>
  </Transport>
 
  <!-- Repeater -->
@@ -25,7 +25,7 @@
   <Data>
    <Active>Yes</Active>
    <ControlChannel>1</ControlChannel>
-   <Options>0x1e5</Options>
+   <Options>0x1e1</Options>
 
    <Parameter>
     <Index>0</Index>
@@ -72,6 +72,13 @@
     <Index>5</Index>
     <Name>seila</Name>
     <Symbol>seila</Symbol>
+    <Value>0</Value>
+   </Parameter>
+
+   <Parameter>
+    <Index>6</Index>
+    <Name>curEventIndex</Name>
+    <Symbol>curEventIndex</Symbol>
     <Value>0</Value>
    </Parameter>
 
@@ -255,10 +262,6 @@
    <Target>PulseAudio JACK Source:front-right</Target>
   </Connection>
   <Connection>
-   <Source>system:midi_capture_1</Source>
-   <Target>Carla:events-in</Target>
-  </Connection>
-  <Connection>
    <Source>PulseAudio JACK Sink:front-left</Source>
    <Target>system:playback_1</Target>
   </Connection>
@@ -267,19 +270,15 @@
    <Target>system:playback_2</Target>
   </Connection>
   <Connection>
-   <Source>Carla:audio-out1</Source>
+   <Source>system:midi_capture_1</Source>
+   <Target>Carla-01:events-in</Target>
+  </Connection>
+  <Connection>
+   <Source>Carla-01:audio-out1</Source>
    <Target>system:playback_1</Target>
   </Connection>
   <Connection>
-   <Source>Carla:audio-out2</Source>
-   <Target>system:playback_2</Target>
-  </Connection>
-  <Connection>
-   <Source>Hydrogen:out_L</Source>
-   <Target>system:playback_1</Target>
-  </Connection>
-  <Connection>
-   <Source>Hydrogen:out_R</Source>
+   <Source>Carla-01:audio-out2</Source>
    <Target>system:playback_2</Target>
   </Connection>
  </ExternalPatchbay>

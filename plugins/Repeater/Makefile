@@ -8,6 +8,7 @@
 # Project name, used for binaries
 
 NAME = d_repeater
+DEBUG = true
 
 # --------------------------------------------------------------
 # Files to build

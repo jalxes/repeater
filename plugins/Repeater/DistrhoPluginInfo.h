@@ -35,12 +35,13 @@
 enum Parameters
 {
   kNumberLastBars,
+  kInitBar,
   kEventGroup,
   kRepeat,
   kClearAll,
   kClearLast,
-  kSeila,
   kCurEventIndex,
+  kTimePosBar,
   kParamsCount,
 };
 

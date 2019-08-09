@@ -96,7 +96,8 @@ protected:
     parameter.hints = kParameterIsAutomable;
     parameter.ranges.def = 0.0f;
     parameter.ranges.min = 0.0f;
-    parameter.ranges.max = 1.0f;
+    parameter.ranges.max = 16777216.0f;
+
     /**
        Set the (unique) parameter name.
      */
@@ -106,6 +107,11 @@ protected:
         parameter.symbol = "numberLastBars";
         parameter.hints |= kParameterIsInteger;
         parameter.ranges.max = 64.0f;
+        break;
+      case kInitBar:
+        parameter.name = "initBar";
+        parameter.symbol = "initBar";
+        parameter.hints |= kParameterIsInteger;
         break;
       case kEventGroup:
         parameter.name = "eventGroup";
@@ -117,27 +123,30 @@ protected:
         parameter.name = "repeat";
         parameter.symbol = "repeat";
         parameter.hints |= kParameterIsBoolean;
+        parameter.ranges.max = 1.0f;
         break;
       case kClearAll:
         parameter.name = "clearAll";
         parameter.symbol = "clearAll";
         parameter.hints |= kParameterIsBoolean;
+        parameter.ranges.max = 1.0f;
         break;
       case kClearLast:
         parameter.name = "clearLast";
         parameter.symbol = "clearLast";
         parameter.hints |= kParameterIsBoolean;
-        break;
-      case kSeila:
-        parameter.name = "seila";
-        parameter.symbol = "seila";
-        parameter.hints |= kParameterIsBoolean;
+        parameter.ranges.max = 1.0f;
         break;
       case kCurEventIndex:
         parameter.name = "curEventIndex";
         parameter.symbol = "curEventIndex";
         parameter.hints |= kParameterIsInteger | kParameterIsOutput;
         parameter.ranges.max = 64.0f;
+        break;
+      case kTimePosBar:
+        parameter.name = "timePosBar";
+        parameter.symbol = "timePosBar";
+        parameter.hints |= kParameterIsInteger | kParameterIsOutput;
         break;
     }
   }
@@ -159,32 +168,27 @@ protected:
       return;
 
     switch (index) {
-      case kRepeat: {
-        fParams[index] = 0.0f;
+      case kCurEventIndex:
+      case kTimePosBar:
+        return;
+      case kRepeat:
+      case kClearAll:
+      case kClearLast:
         if (value > 0.5f)
           value = 1.0f;
-      } break;
-      case kClearAll: {
-        fParams[index] = 0.0f;
-        if (value > 0.5f) {
-          allEventsByBar.clear();
-          value = 1.0f;
-        }
-      } break;
-      case kClearLast: {
-        fParams[index] = 0.0f;
-        if (value > 0.5f) {
-          lastEvents.clear();
-          value = 1.0f;
-        }
-      } break;
-      case kCurEventIndex: {
-        if (value > fParams[kNumberLastBars])
-          value = fParams[kNumberLastBars] - 1;
-      } break;
+        else
+          value = 0.0f;
+        break;
     }
 
     fParams[index] = value;
+
+    if (index == kClearAll and fParams[index] > 0.5f)
+      allEventsByBar.clear();
+    if (index == kClearLast and fParams[index] > 0.5f)
+      lastEvents.clear();
+
+    resetEvents();
   }
 
   /* --------------------------------------------------------------------------------------------------------
@@ -192,12 +196,19 @@ protected:
 
   void resetEvents()
   {
-    auto init = allEventsByBar.end() - fParams[kNumberLastBars];
-    auto end = init + fParams[kNumberLastBars];
-    if (allEventsByBar.size() > fParams[kNumberLastBars])
-      lastEvents = std::vector<EventByBar>(init, end);
-    else
+    if (allEventsByBar.size() < fParams[kNumberLastBars]) {
       lastEvents = allEventsByBar;
+      return;
+    }
+
+    float init = fParams[kInitBar];
+    if (init < 1)
+      init = allEventsByBar.size() - fParams[kNumberLastBars] - 1;
+
+    float end = init + fParams[kNumberLastBars];
+
+    lastEvents = std::vector<EventByBar>(allEventsByBar.begin() + init,
+                                         allEventsByBar.begin() + end);
   }
 
   void run(const float**,
@@ -207,12 +218,10 @@ protected:
            uint32_t midiEventCount) override
   {
     const TimePosition& timePos(getTimePosition());
-    bool newBar = timePosBar != timePos.bbt.bar;
+    bool newBar = fParams[kTimePosBar] != timePos.bbt.bar;
 
     if (newBar) {
-      timePosBar = timePos.bbt.bar;
-      std::cout << std::endl;
-      std::cout << "timePosBar " << timePosBar;
+      fParams[kTimePosBar] = timePos.bbt.bar;
 
       allEventsByBar.emplace_back(eventByBar);
 
@@ -236,12 +245,8 @@ protected:
 
     if (newBar) {
       fParams[kCurEventIndex]++;
-      if (fParams[kCurEventIndex] >= (lastEvents.size())) {
-        std::cout << std::endl;
-        std::cout << "OI"
-                  << "\n";
+      if (fParams[kCurEventIndex] >= (lastEvents.size()))
         fParams[kCurEventIndex] = 0;
-      }
     }
 
     if (!fParams[kRepeat] || lastEvents.empty())
@@ -288,7 +293,6 @@ private:
     int32_t bar;
   } eventByBar;
 
-  int32_t timePosBar;
   std::vector<EventByBar> lastEvents;
   std::vector<EventByBar> allEventsByBar;
 
