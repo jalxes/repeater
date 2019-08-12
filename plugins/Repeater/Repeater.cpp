@@ -96,7 +96,7 @@ protected:
     parameter.hints = kParameterIsAutomable;
     parameter.ranges.def = 0.0f;
     parameter.ranges.min = 0.0f;
-    parameter.ranges.max = 16777216.0f;
+    parameter.ranges.max = 64.0f;
 
     /**
        Set the (unique) parameter name.
@@ -276,10 +276,7 @@ protected:
   // -------------------------------------------------------------------------------------------------------
 
 private:
-  /**
-     Our parameters used to display the grid on/off states.
-   */
-  float fParams[kParamsCount];
+ float fParams[kParamsCount];
 
   struct EventWithTime
   {

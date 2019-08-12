@@ -18,45 +18,21 @@
 #include "DistrhoUI.hpp"
 
 START_NAMESPACE_DISTRHO
-using DGL::Rectangle;
 
 // -----------------------------------------------------------------------------------------------------------
 
 class RepeaterUI : public UI
 {
 public:
-  /**
-    For simplicity this UI will be of constant size.
-  */
-  static const int kUIWidth = 512;
-  static const int kUIHeight = 512;
+    RepeaterUI()
+        : UI(405, 256)
+    {
+        std::memset(fParams, 0, sizeof(float)*kParamsCount);
+        std::memset(fStrBuf, 0, sizeof(char)*(0xff+1));
 
-  /**
-    Get key name from an index.
-  */
-  static const char* getStateKeyFromIndex(const uint32_t index) noexcept
-  {
-    switch (index) {
-      case 0:
-        return "top-left";
-      case 1:
-        return "top-center";
+        fFont = createFontFromFile("sans", "/usr/share/fonts/TTF/DejaVuSans.ttf");
     }
 
-    return "unknown";
-  }
-
-  /* constructor */
-  RepeaterUI()
-    : UI()
-  {
-    /**
-       Initialize the grid to all off per default.
-     */
-    std::memset(fParamGrid, 0, sizeof(bool) * 3);
-
-    setSize(kUIWidth, kUIHeight);
-  }
 
 protected:
   /* --------------------------------------------------------------------------------------------------------
@@ -68,52 +44,12 @@ protected:
   void parameterChanged(uint32_t index, float value) override
   {
     // update our grid state to match the plugin side
-    fParamGrid[index] = (value > 0.5f);
+    fParams[index] = value;
 
     // trigger repaint
     repaint();
   }
 
-  /**
-     A program has been loaded on the plugin side.
-     This is called by the host to inform the UI about program changes.
-   */
-  void programLoaded(uint32_t index) override
-  {
-    d_stdout("UI programLoaded %i", index);
-
-    switch (index) {
-      case 0:
-        fParamGrid[0] = false;
-        fParamGrid[1] = false;
-        fParamGrid[2] = false;
-        break;
-      case 1:
-        fParamGrid[0] = true;
-        fParamGrid[1] = true;
-        fParamGrid[2] = false;
-        break;
-    }
-    repaint();
-  }
-
-  /**
-     A state has changed on the plugin side.
-     This is called by the host to inform the UI about state changes.
-   */
-  void stateChanged(const char* key, const char* value) override
-  {
-    const bool valueOnOff = (std::strcmp(value, "true") == 0);
-
-    // check which block changed
-    /**/ if (std::strcmp(key, "top-left") == 0)
-      fParamGrid[0] = valueOnOff;
-    else if (std::strcmp(key, "top-center") == 0)
-      fParamGrid[1] = valueOnOff;
-
-    // trigger repaint
-    repaint();
-  }
 
   /* --------------------------------------------------------------------------------------------------------
    * Widget Callbacks */
@@ -122,130 +58,69 @@ protected:
      The OpenGL drawing function.
      This UI will draw a 3x3 grid, with on/off states according to plugin state.
    */
-  void onDisplay() override
+    void onNanoDisplay() override
   {
-    Rectangle<int> r;
+   static const float lineHeight = 20;
 
-    r.setWidth(kUIWidth / 3 - 6);
-    r.setHeight(kUIHeight / 3 - 6);
+        fontSize(15.0f);
+        textLineHeight(lineHeight);
 
-    // draw left, center and right columns
-    for (int i = 0; i < 3; ++i) {
-      r.setX(3 + i * kUIWidth / 3);
+        float x = 0;
+        float y = 15;
 
-      // top
-      r.setY(3);
+        drawLeft(x, y, "kNumberLastBars:");
+        drawRight(x, y, getTextBufFloat(fParams[kNumberLastBars]));
+        y+=lineHeight;
 
-      if (fParamGrid[0 + i])
-        glColor3f(0.8f, 0.5f, 0.3f);
-      else
-        glColor3f(0.3f, 0.5f, 0.8f);
+        drawLeft(x, y, "kInitBar:");
+        drawRight(x, y, getTextBufFloat(fParams[kInitBar]));
+        y+=lineHeight;
 
-      r.draw();
-
-      // middle
-      r.setY(3 + kUIHeight / 3);
-
-      // if (fParamGrid[3+i])
-      //     glColor3f(0.8f, 0.5f, 0.3f);
-      // else
-      glColor3f(0.3f, 0.5f, 0.8f);
-
-      r.draw();
-
-      // bottom
-      r.setY(3 + kUIHeight * 2 / 3);
-
-      // if (fParamGrid[6+i])
-      //     glColor3f(0.8f, 0.5f, 0.3f);
-      // else
-      glColor3f(0.3f, 0.5f, 0.8f);
-
-      r.draw();
-    }
-  }
-
-  /**
-     Mouse press event.
-     This UI will de/activate blocks when you click them and reports it as a
-     state change to the plugin.
-   */
-  bool onMouse(const MouseEvent& ev) override
-  {
-    // Test for left-clicked + pressed first.
-    if (ev.button != 1 || !ev.press)
-      return false;
-
-    Rectangle<int> r;
-
-    r.setWidth(kUIWidth / 3 - 6);
-    r.setHeight(kUIHeight / 3 - 6);
-
-    // handle left, center and right columns
-    for (int i = 0; i < 3; ++i) {
-      r.setX(3 + i * kUIWidth / 3);
-
-      // top
-      r.setY(3);
-
-      if (r.contains(ev.pos)) {
-        // index that this block applies to
-        const uint32_t index = 0 + i;
-
-        // invert block state
-        fParamGrid[index] = !fParamGrid[index];
-
-        // report change to host (and thus plugin)
-        setState(getStateKeyFromIndex(index),
-                 fParamGrid[index] ? "true" : "false");
-        // report change to host (and thus plugin)
-        setParameterValue(index, fParamGrid[index] ? 1.0f : 0.0f);
-
-        // trigger repaint
-        repaint();
-        break;
-      }
-
-      // middle
-      r.setY(3 + kUIHeight / 3);
-
-      if (r.contains(ev.pos)) {
-        // same as before
-        const uint32_t index = 3 + i;
-        fParamGrid[index] = !fParamGrid[index];
-        setState(getStateKeyFromIndex(index),
-                 fParamGrid[index] ? "true" : "false");
-        setParameterValue(index, fParamGrid[index] ? 1.0f : 0.0f);
-        repaint();
-        break;
-      }
-
-      // bottom
-      r.setY(3 + kUIHeight * 2 / 3);
-
-      if (r.contains(ev.pos)) {
-        // same as before
-        const uint32_t index = 6 + i;
-        fParamGrid[index] = !fParamGrid[index];
-        setState(getStateKeyFromIndex(index),
-                 fParamGrid[index] ? "true" : "false");
-        setParameterValue(index, fParamGrid[index] ? 1.0f : 0.0f);
-        repaint();
-        break;
-      }
-    }
-
-    return true;
+        drawLeft(x, y, "kRepeat:");
+        drawRight(x, y, getTextBufFloat(fParams[kRepeat]));
+        y+=lineHeight;
+        
+        drawLeft(x, y, "kCurEventIndex:");
+        drawRight(x, y, getTextBufFloat(fParams[kCurEventIndex]));
+        y+=lineHeight;
+        
+        drawLeft(x, y, "kTimePosBar:");
+        drawRight(x, y, getTextBufFloat(fParams[kTimePosBar]));
+        y+=lineHeight;
   }
 
   // -------------------------------------------------------------------------------------------------------
 
 private:
-  /**
-     Our states used to display the grid.
-     The host does not know about these.
-   */
-  bool fParamGrid[3];
+ float fParams[kParamsCount];
+
+    FontId fFont;
+    char fStrBuf[0xff+1];
+
+    const char* getTextBufFloat(const float value)
+    {
+        std::snprintf(fStrBuf, 0xff, "%.1f", value);
+        return fStrBuf;
+    }
+    
+  // helpers for drawing text
+    void drawLeft(const float x, const float y, const char* const text)
+    {
+        beginPath();
+        fillColor(200, 200, 200);
+        textAlign(ALIGN_RIGHT|ALIGN_TOP);
+        textBox(x, y, 100, text);
+        closePath();
+    }
+
+    void drawRight(const float x, const float y, const char* const text)
+    {
+        beginPath();
+        fillColor(255, 255, 255);
+        textAlign(ALIGN_LEFT|ALIGN_TOP);
+        textBox(x+105, y, 100, text);
+        closePath();
+    }
 
   /**
      Set our UI class as non-copyable and add a leak detector just in case.

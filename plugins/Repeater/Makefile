@@ -15,6 +15,8 @@ DEBUG = true
 
 FILES_DSP = \
 	Repeater.cpp
+FILES_UI  = \
+	RepeaterUI.cpp
 
 
 # --------------------------------------------------------------
@@ -31,21 +33,11 @@ TARGETS += jack
 endif
 endif
 
-ifeq ($(LINUX),true)
-ifeq ($(HAVE_DGL),true)
-ifeq ($(HAVE_LIBLO),true)
-# TARGETS += dssi
-endif
-endif
-endif
-
 ifeq ($(HAVE_DGL),true)
 TARGETS += lv2_sep
 else
 TARGETS += lv2_dsp
 endif
-
-# TARGETS += vst
 
 all: $(TARGETS)
 
